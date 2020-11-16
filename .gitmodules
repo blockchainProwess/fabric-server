@@ -1,0 +1,3 @@
+[submodule "fabric-server"]
+	path = fabric-server
+	url = git@github.com:blockchainProwess/ehr.git
