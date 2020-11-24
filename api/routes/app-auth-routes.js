@@ -5,12 +5,11 @@ var ehr_invoke = require('./ehr-invokes');
 var ehr_query = require('./ehr-queries');
 var mysql      = require('mysql');
 
-require('dotenv').config();
 
 const accountSid = "AC864d710b56cc4ac036dab867c7690251";
-const authToken = "883a87f70db6501912be1f572e6b3037";
+const authToken = "4b47ce5cdee2c0c10a9151aa0632ab6b";
 const client = require('twilio')(accountSid, authToken);
-const from_number = "+12283359090";
+const from_number ="+12283359090";
 
 var connection = mysql.createConnection({
   host     : "localhost",
@@ -26,9 +25,9 @@ connection.connect(function(err) {
 
 
 
-function sqlInsert(user_name, password, secret_code, code_created_on, user_role){
+function sqlInsert(user_name, password, secret_code, code_created_date, user_role,mobile_num){
    
-    var sql = "INSERT INTO patient_details (user_name, password, secret_code, code_created_date, user_role) VALUES ("+user_name+","+password+","+secret_code+","+code_created_on+","+user_role+")";
+    var sql = "INSERT INTO patient_details (user_name, password, secret_code, code_created_date, user_role,mobile_number) VALUES ('"+user_name+"','"+password+"','"+secret_code+"','"+code_created_date+"','"+user_role+"','"+mobile_num+"')";
     connection.query(sql, function (err, result) {
     if (err) throw err;
     console.log("record inserted");
@@ -58,7 +57,7 @@ router.post('/register-admin/', (req, res, next) => {
         
         console.log("data=====>",data);
         
-        sqlInsert(req.body.user_name,req.body.password,req.body.secret_code,req.body.code_created_on,req.body.user_role);
+        sqlInsert(req.body.user_name,req.body.password,req.body.secret_code,req.body.code_created_date,req.body.user_role,req.body.mobile_num);
 
         res.status(200).json(
             {
@@ -91,7 +90,7 @@ router.post('/register-user/', (req, res, next) => {
     registrations.registerUser(req.body.admin_name,req.body.user_name,req.body.user_role,req.body.org_name).then(data=>{
             
         console.log("data=====>",data);
-        sqlInsert(req.body.user_name,req.body.password,req.body.secret_code,req.body.code_created_on,req.body.user_role);
+        sqlInsert(req.body.user_name,req.body.password,req.body.secret_code,req.body.code_created_date,req.body.user_role,req.body.mobile_num);
         res.status(200).json(
             {
                 "doc":data,
@@ -116,7 +115,7 @@ router.post('/login',(req,res)=>{
     const user_name =  req.body.user_name;
     const password = req.body.password;
     
-    connection.query("SELECT * FROM user_details WHERE user_name="+user_name+" and password="+password+"", function (err, result, fields) {
+    connection.query("SELECT * FROM patient_details WHERE user_name='"+user_name+"' and password='"+password+"'", function (err, result, fields) {
         if (err){
             res.status(200).json(
                 {
@@ -153,33 +152,34 @@ router.post('/create-otp',(req,res)=>{
     // User credentials to check if the user is authenticated or not.
     const user_name =  req.body.user_name;
     const password = req.body.password;
-    
+    let date = Date.now();
     let otp = Math.random().toString(36).substring(7);
 
     
-    connection.query("SELECT * FROM user_details WHERE user_name="+user_name+" and password="+password+"", function (err, result, fields) {
+    connection.query("SELECT * FROM patient_details WHERE user_name='"+user_name+"' and password='"+password+"'", function (err, result, fields) {
         if (err){
-            
+         console.log(err);   
         }
         else{
+            console.log(result[0]["mobile_number"]);
                 client.messages
                 .create({
                     body: "OTP to access"+user_name+"'s file is "+otp+"",
                     from: from_number,
-                    to: result[4]
+                    to: result[0]["mobile_number"]
                 })
                 .then(message => console.log(message.sid));
 
-                res.status(200).json(
-                    {
-                        "code":1,
-                        "msg": "OTP sent to registered mobile"
-                    }
-                );
+                // res.status(200).json(
+                //     {
+                //         "code":1,
+                //         "msg": "OTP sent to registered mobile"
+                //     }
+                // );
                 
             } 
         });
-        connection.query("UPDATE patient_details SET secret_code = "+otp+",code_created_on="+date+" WHERE user_name = "+user_name+"", function (err, result, fields) {
+        connection.query("UPDATE patient_details SET secret_code = '"+otp+"',code_created_date='"+date+"' WHERE user_name = '"+user_name+"'", function (err, result, fields) {
         if (err){
             res.status(200).json(
                 {
@@ -214,13 +214,13 @@ router.post('/verify-otp',(req,res)=>{
     const password = req.body.password;
     const otp = req.body.otp;
     
-    connection.query("SELECT * FROM user_details WHERE user_name="+user_name+" and password="+password+"", function (err, result, fields) {
+    connection.query("SELECT * FROM patient_details WHERE user_name='"+user_name+"' and password='"+password+"'", function (err, result, fields) {
         if (err){
-            
+            console.log("verify-otp-err",err);            
         }
         else{
-            if (result[4] == otp){
-
+            if (result[0]["secret_code"] == otp){
+                    console.log("success!!!!!!!!!!!!!!!!!!!!!");
             }
         } 
       });

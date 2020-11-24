@@ -149,7 +149,7 @@ async function invoke(chain_code_name,user_name,function_name,args) {
       console.log(util.format("\nCreated a transaction ID: %s", tx_id.getTransactionID()));
   
       const proposal_request = {
-        targets: [org1_peer,org2_peer,org3_peer,org4_peer],
+        targets: [org1_peer,org2_peer,org3_peer],
         chaincodeId: chain_code_name,
         fcn: function_name,
         args:args,
